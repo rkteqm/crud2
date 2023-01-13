@@ -23,7 +23,7 @@
                 echo $this->Form->control('password', ['required' => false]);
                 ?>
             </fieldset>
-            <?= $this->Form->button(__('Submit')) ?>
+            <?= $this->Form->button(__('Login')) ?>
             <?= $this->Html->link(__('Forgot'), ['action' => 'forgot'], ['class' => 'button float-center']) ?>
             <?= $this->Form->end() ?>
         </div>

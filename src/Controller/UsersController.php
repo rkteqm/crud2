@@ -26,7 +26,7 @@ class UsersController extends AppController
     public function index()
     {
         $session = $this->request->getSession();
-        if ($session->read('email') != null) {
+        if ($session->read('email') != null && $session->read('role') == 0) {
         } else {
             $this->redirect(['action' => 'login']);
         }
@@ -34,6 +34,21 @@ class UsersController extends AppController
         $users = $this->paginate($this->Users);
 
         $this->set(compact('users'));
+    }
+
+    public function userindex()
+    {
+        $session = $this->request->getSession();
+        if ($session->read('email') != null && $session->read('role') == 1) {
+            $id = $session->read('id');
+            $user = $this->Users->get($id, [
+                'contain' => [],
+            ]);
+
+            $this->set(compact('user'));
+        } else {
+            $this->redirect(['action' => 'login']);
+        }
     }
 
     /**
@@ -46,16 +61,29 @@ class UsersController extends AppController
     public function view($id = null)
     {
         $session = $this->request->getSession();
-        if ($session->read('email') != null) {
+        if ($session->read('email') != null && $session->read('role') == 0) {
+            $user = $this->Users->get($id, [
+                'contain' => [],
+            ]);
+
+            $this->set(compact('user'));
         } else {
             $this->redirect(['action' => 'login']);
         }
+    }
+    public function userview()
+    {
+        $session = $this->request->getSession();
+        if ($session->read('email') != null && $session->read('role') == 1) {
+            $uid = $session->read('id');
+            $user = $this->Users->get($uid, [
+                'contain' => [],
+            ]);
 
-        $user = $this->Users->get($id, [
-            'contain' => [],
-        ]);
-
-        $this->set(compact('user'));
+            $this->set(compact('user'));
+        } else {
+            $this->redirect(['action' => 'login']);
+        }
     }
 
     /**
@@ -73,10 +101,6 @@ class UsersController extends AppController
             $fileName = $productImage->getClientFilename();
             $fileSize = $productImage->getSize();
             $data["image"] = $fileName;
-            // $data["image"] = $fileSize;
-            // echo '<pre>';
-            // print_r($data);
-            // die;
             $user = $this->Users->patchEntity($user, $data);
             if ($this->Users->save($user)) {
                 $hasFileError = $productImage->getError();
@@ -111,46 +135,92 @@ class UsersController extends AppController
     public function edit($id = null)
     {
         $session = $this->request->getSession();
-        if ($session->read('email') != null) {
+        if ($session->read('email') != null && $session->read('role') == 0) {
+
+            $user = $this->Users->get($id, [
+                'contain' => [],
+            ]);
+            $fileName2 = $user['image'];
+
+            if ($this->request->is(['patch', 'post', 'put'])) {
+                $data = $this->request->getData();
+                $productImage = $this->request->getData("image");
+                $fileName = $productImage->getClientFilename();
+                if ($fileName == '') {
+                    $fileName = $fileName2;
+                }
+
+                $data["image"] = $fileName;
+                $user = $this->Users->patchEntity($user, $data);
+                if ($this->Users->save($user)) {
+                    $hasFileError = $productImage->getError();
+                    if ($hasFileError > 0) {
+                        $data["image"] = "";
+                    } else {
+                        $fileType = $productImage->getClientMediaType();
+
+                        if ($fileType == "image/png" || $fileType == "image/jpeg" || $fileType == "image/jpg") {
+                            $imagePath = WWW_ROOT . "img/" . $fileName;
+                            $productImage->moveTo($imagePath);
+                            $data["image"] = $fileName;
+                        }
+                    }
+                    $this->Flash->success(__('The user has been saved.'));
+
+                    return $this->redirect(['action' => 'index']);
+                }
+                $this->Flash->error(__('The user could not be saved. Please, try again.'));
+            }
+            $this->set(compact('user'));
         } else {
             $this->redirect(['action' => 'login']);
         }
+    }
 
-        $user = $this->Users->get($id, [
-            'contain' => [],
-        ]);
-        $fileName2 = $user['image'];
+    public function useredit()
+    {
+        $session = $this->request->getSession();
+        if ($session->read('email') != null && $session->read('role') == 1) {
 
-        if ($this->request->is(['patch', 'post', 'put'])) {
-            $data = $this->request->getData();
-            $productImage = $this->request->getData("image");
-            $fileName = $productImage->getClientFilename();
-            if ($fileName == '') {
-                $fileName = $fileName2;
-            }
+            $uid = $session->read('id');
+            $user = $this->Users->get($uid, [
+                'contain' => [],
+            ]);
+            $fileName2 = $user['image'];
 
-            $data["image"] = $fileName;
-            $user = $this->Users->patchEntity($user, $data);
-            if ($this->Users->save($user)) {
-                $hasFileError = $productImage->getError();
-                if ($hasFileError > 0) {
-                    $data["image"] = "";
-                } else {
-                    $fileType = $productImage->getClientMediaType();
-
-                    if ($fileType == "image/png" || $fileType == "image/jpeg" || $fileType == "image/jpg") {
-                        $imagePath = WWW_ROOT . "img/" . $fileName;
-                        $productImage->moveTo($imagePath);
-                        $data["image"] = $fileName;
-                    }
+            if ($this->request->is(['patch', 'post', 'put'])) {
+                $data = $this->request->getData();
+                $productImage = $this->request->getData("image");
+                $fileName = $productImage->getClientFilename();
+                if ($fileName == '') {
+                    $fileName = $fileName2;
                 }
-                $this->Flash->success(__('The user has been saved.'));
 
-                return $this->redirect(['action' => 'index']);
+                $data["image"] = $fileName;
+                $user = $this->Users->patchEntity($user, $data);
+                if ($this->Users->save($user)) {
+                    $hasFileError = $productImage->getError();
+                    if ($hasFileError > 0) {
+                        $data["image"] = "";
+                    } else {
+                        $fileType = $productImage->getClientMediaType();
+
+                        if ($fileType == "image/png" || $fileType == "image/jpeg" || $fileType == "image/jpg") {
+                            $imagePath = WWW_ROOT . "img/" . $fileName;
+                            $productImage->moveTo($imagePath);
+                            $data["image"] = $fileName;
+                        }
+                    }
+                    $this->Flash->success(__('The user has been saved.'));
+
+                    return $this->redirect(['action' => 'userindex']);
+                }
+                $this->Flash->error(__('The user could not be saved. Please, try again.'));
             }
-            $this->Flash->error(__('The user could not be saved. Please, try again.'));
+            $this->set(compact('user'));
+        } else {
+            $this->redirect(['action' => 'login']);
         }
-        $this->set(compact('user'));
     }
 
     /**
@@ -162,6 +232,8 @@ class UsersController extends AppController
      */
     public function delete($id = null)
     {
+
+
         $this->request->allowMethod(['post', 'delete']);
         $user = $this->Users->get($id);
         if ($this->Users->delete($user)) {
@@ -170,7 +242,13 @@ class UsersController extends AppController
             $this->Flash->error(__('The user could not be deleted. Please, try again.'));
         }
 
-        return $this->redirect(['action' => 'index']);
+        $session = $this->request->getSession();
+        if ($session->read('role') == 0) {
+            return $this->redirect(['action' => 'index']);
+        } elseif ($session->read('role') == 1) {
+            $session->destroy();
+            return $this->redirect(['action' => 'login']);
+        }
     }
 
     public function login()
@@ -180,13 +258,26 @@ class UsersController extends AppController
             $email = $this->request->getData('email');
             $password =  $this->request->getData('password');
 
-            $result = $this->Users->login($email, $password);
+            $users = TableRegistry::get("Users");
+            $result = $users->find('all')->where(['email' => $email, 'password' => $password])->first();
+
             if ($result) {
+
+                $role = $result['role'];
+                $id = $result['id'];
+
                 $session = $this->getRequest()->getSession();
                 $session->write('email', $email);
-                $this->Flash->success(__('The user has been logged in successfully.'));
+                $session->write('role', $role);
+                $session->write('id', $id);
 
-                return $this->redirect(['action' => 'index']);
+                if ($role == 0) {
+                    $this->Flash->success(__('The admin has been logged in successfully.'));
+                    return $this->redirect(['action' => 'index']);
+                } elseif ($role == 1) {
+                    $this->Flash->success(__('The user has been logged in successfully.'));
+                    return $this->redirect(['action' => 'userindex']);
+                }
             }
             $this->Flash->error(__('Please enter valid credential..'));
         }
@@ -205,25 +296,23 @@ class UsersController extends AppController
         $user = $this->Users->newEmptyEntity();
         if ($this->request->is('post')) {
             $email = $this->request->getData('email');
-            $result = $this->Users->checkEmail($email);
-            if ($result) {
+            $users = TableRegistry::get("Users");
+            $user = $users->find('all')->where(['email' => $email])->first();
+            if ($user) {
                 $token = rand(10000, 100000);
-                $result2 = $this->Users->insertToken($email, $token);
-                if ($result2) {
-                    $user->email = $email;
+                $user->token = $token;
+                if ($users->save($user)) {
                     $mailer = new Mailer('default');
                     $mailer->setTransport('gmail');
-                    $mailer->setFrom(['rkteqm@gmail.com' => 'Rahul']);
+                    $mailer->setFrom(['sachinsingh10101997@gmail.com' => 'Rahul']);
                     $mailer->setTo($email);
                     $mailer->setEmailFormat('html');
-                    $mailer->setSubject('Verify New Account');
-                    $mailer->deliver('<a href="http://localhost:8765/users/reset?token=' . $token . '">Click here</a>');
+                    $mailer->setSubject('Reset password link');
+                    $mailer->deliver('<a href="http://localhost:8765/users/reset?token=' . $token . '">Click here</a> for reset your password');
 
                     $this->Flash->success(__('Reset email send successfully.'));
-
-                    // return $this->redirect(['action' => 'login']);
                 }
-            }else{
+            } else {
                 $this->Flash->error(__('Please enter valid credential..'));
             }
         }
@@ -234,16 +323,18 @@ class UsersController extends AppController
     {
         $user = $this->Users->newEmptyEntity();
         $token = $_REQUEST['token'];
-        $result = $this->Users->checkToken($token);
+        $users = TableRegistry::get("Users");
+        $result = $users->find('all')->where(['token' => $token])->first();
         if ($result) {
             if ($this->request->is('post')) {
                 $user = $this->Users->patchEntity($user, $this->request->getData());
                 $password = $this->request->getData('password');
                 $res1 = preg_match('(^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]*).{8,}$)', $password);
                 $confirm_password = $this->request->getData('confirm_password');
-                if($res1 ==1 && $confirm_password == $password){
-                    $result2 = $this->Users->resetPassword($token, $password);
-                    if ($result2) {
+                if ($res1 == 1 && $confirm_password == $password) {
+                    $result->password = $password;
+                    $result->token = NULL;
+                    if ($users->save($result)) {
                         $this->Flash->success(__('Password updated successfully.'));
                         return $this->redirect(['action' => 'login']);
                     }

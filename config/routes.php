@@ -50,12 +50,16 @@ return static function (RouteBuilder $routes) {
          * its action called 'display', and we pass a param to select the view file
          * to use (in this case, templates/Pages/home.php)...
          */
-        $builder->connect('/', ['controller' => 'Pages', 'action' => 'display', 'home']);
+        $builder->connect('/', ['controller' => 'Users', 'action' => 'index']);
+        $builder->connect('/login', ['controller' => 'Users', 'action' => 'login']);
+        $builder->connect('/register', ['controller' => 'Users', 'action' => 'add']);
+        $builder->connect('/view/*', ['controller' => 'Users', 'action' => 'view']);
+        $builder->connect('/edit/*', ['controller' => 'Users', 'action' => 'edit']);
 
         /*
          * ...and connect the rest of 'Pages' controller's URLs.
          */
-        $builder->connect('/pages/*', 'Pages::display');
+        // $builder->connect('/pages/*', 'Pages::display');
 
         /*
          * Connect catchall routes for all controllers.
@@ -71,6 +75,14 @@ return static function (RouteBuilder $routes) {
          * routes you want in your application.
          */
         $builder->fallbacks();
+    });
+
+    $routes->prefix('Admin', function (RouteBuilder $routes) {
+        // Because you are in the admin scope,
+        // you do not need to include the /admin prefix
+        // or the Admin route element.
+        $routes->connect('/', ['controller' => 'Admin', 'action' => 'adminPortal']);
+        $routes->connect('/add', ['controller' => 'Admin', 'action' => 'add']);
     });
 
     /*

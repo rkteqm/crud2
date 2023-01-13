@@ -22,7 +22,7 @@
                 echo $this->Form->control('email', ['required' => false]);
                 ?>
             </fieldset>
-            <?= $this->Form->button(__('Submit')) ?>
+            <?= $this->Form->button(__('Forgot')) ?>
             <?= $this->Form->end() ?>
         </div>
     </div>
